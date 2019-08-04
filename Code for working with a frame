@@ -1,0 +1,45 @@
+import cv2
+import numpy as np
+from matplotlib import pyplot as plt
+image = cv2.imread("img.jpg")
+
+gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+cv2.imshow("original", image)
+cv2.imshow("greyscale", gray)
+ret,thresh = cv2.threshold(gray,30,255,cv2.THRESH_BINARY)
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 10))
+closed = cv2.erode(cv2.dilate(thresh, kernel, iterations=1), kernel, iterations=1)
+plt.imshow(thresh,'gray')
+plt.show()
+im2,contours, hierarchy = cv2.findContours(closed, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+
+drawing = np.copy(gray)
+
+for contour in contours:
+    area = cv2.contourArea(contour)
+    bounding_box = cv2.boundingRect(contour)
+    
+    extend = area / (bounding_box[2] * bounding_box[3])
+    
+    # reject the contours with big extend
+    if extend > 0.8:
+        continue
+    
+    # calculate countour center and draw a dot there
+    m = cv2.moments(contour)
+    if m['m00'] != 0:
+        center = (int(m['m10'] / m['m00']), int(m['m01'] / m['m00']))
+        cv2.circle(drawing, center, 3, (0, 255, 0), -1)
+    
+    # fit a circle around the contour and draw it into the image
+    (x,y),radius = cv2.minEnclosingCircle(contour)
+    center = (int(x), int(y))
+    radius = int(radius)
+    cv2.circle(drawing, center, radius, (0,255, 0), 1)
+    
+
+plt.figure(figsize=(10,5))
+plt.imshow(drawing)
+plt.show()
+cv2.waitKey(0)
+cv2.destroyAllWindows()
